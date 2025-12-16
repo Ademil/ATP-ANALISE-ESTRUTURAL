@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EngenharIA ATP | APavan Engenharia</title>
+    <meta name="description" content="Engenharia Estrutural e Consultoria Técnica em Concreto Armado conforme NBR 6118.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Bibliotecas Externas (CDNs) -->
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- jsPDF para gerar PDFs -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <!-- Configuração do Tailwind -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                    },
+                    colors: {
+                        gold: {
+                            400: '#E6C35C',
+                            500: '#D4AF37',
+                            600: '#B5952F',
+                        },
+                        dark: {
+                            900: '#0b0b0b',
+                            800: '#121212',
+                            700: '#1a1a1a',
+                        }
+                    },
+                    animation: {
+                        'fade-in': 'fadeIn 1s ease-out',
+                        'fade-in-up': 'fadeInUp 0.8s ease-out',
+                    },
+                    keyframes: {
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #0b0b0b;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: linear-gradient(145deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Scrollbar Invisível mas funcional para o carrossel */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Spinner Animation */
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen relative pb-12 font-sans selection:bg-gold-500 selection:text-black">
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-6 left-1/2 transform -translate-x-1/2 z-[70] w-[90%] max-w-sm hidden transition-all duration-300">
+        <div id="toast-content" class="glass-panel p-4 rounded-xl shadow-2xl border-l-4 flex items-center gap-3">
+            <i id="toast-icon" data-lucide="check-circle-2" class="w-5 h-5"></i>
+            <div>
+                <p id="toast-title" class="text-sm font-bold text-white">Sucesso</p>
+                <p id="toast-message" class="text-xs text-gray-300">Mensagem aqui</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm hidden animate-fade-in">
+        <div class="w-full max-w-xs bg-dark-900/90 border border-white/10 rounded-2xl p-6 shadow-2xl relative">
+            <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-gray-500 hover:text-white transition-colors">
+                <i data-lucide="x-circle" class="w-5 h-5"></i>
+            </button>
+            
+            <div class="flex flex-col items-center mb-6">
+                <div class="p-3 bg-gold-500/10 rounded-full mb-3 border border-gold-500/20">
+                    <i data-lucide="lock" class="w-6 h-6 text-gold-500"></i>
+                </div>
+                <h3 class="text-white font-bold text-lg">Área Restrita</h3>
+                <p class="text-gray-400 text-xs text-center mt-1">Acesso exclusivo para administradores.</p>
+            </div>
+
+            <form onsubmit="handleAdminLogin(event)" class="space-y-4">
+                <input 
+                    type="password" 
+                    id="auth-password"
+                    class="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-center text-white focus:outline-none focus:border-gold-500 focus:ring-1 focus:ring-gold-500/50 transition-all placeholder-gray-600"
+                    placeholder="Digite a senha"
+                    autofocus
+                />
+                <button 
+                    type="submit"
+                    class="w-full bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-dark-900 font-bold py-3 rounded-xl transition-all shadow-lg shadow-gold-500/10"
+                >
+                    Entrar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Background -->
+    <div class="fixed inset-0 z-0 pointer-events-none">
+        <div 
+            class="absolute inset-0 bg-cover bg-center opacity-40 transform scale-105"
+            style="background-image: url('https://images.unsplash.com/photo-1590650046871-92c887180603?auto=format&fit=crop&q=80&w=1200');"
+        ></div>
+        <div class="absolute inset-0 bg-gradient-to-b from-dark-900/90 via-dark-900/95 to-dark-900"></div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="relative z-10 max-w-md mx-auto px-4 sm:px-0">
+        
+        <!-- Header -->
+        <header class="pt-12 pb-8 text-center animate-fade-in-up relative">
+            <button 
+                id="back-btn"
+                onclick="switchView('form')"
+                class="absolute left-0 top-12 p-2 bg-white/5 rounded-full hover:bg-gold-500/20 text-gold-500 transition-colors hidden"
+            >
+                <i data-lucide="arrow-left" class="w-5 h-5"></i>
+            </button>
+
+            <div class="relative inline-block mb-4 group cursor-pointer">
+                <div class="absolute -inset-1 rounded-full opacity-75 blur-md bg-gold-500/30 group-hover:opacity-100 transition duration-500"></div>
+                <img 
+                    id="profile-img"
+                    src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80"
+                    alt="Eng. Ademilton Pavan" 
+                    class="relative w-32 h-32 rounded-full object-cover border-2 border-gold-500 shadow-2xl mx-auto bg-dark-800"
+                />
+            </div>
+            <h1 class="text-3xl font-bold text-white tracking-tight mb-1">Ademilton Pavan</h1>
+            <p id="page-subtitle" class="text-gold-400 text-xs font-bold tracking-[0.2em] uppercase">
+                EngenharIA ATP
+            </p>
+            <div class="flex justify-center items-center gap-2 mt-3 text-gray-400 text-xs">
+                <span class="bg-white/10 px-3 py-1 rounded-full border border-white/5">CREA SC 86959-8</span>
+                <span class="text-gold-500">•</span>
+                <span>Especialista em Estruturas</span>
+            </div>
+        </header>
+
+        <!-- VIEW: FORM -->
+        <div id="view-form">
+            <!-- Action Grid -->
+            <div class="grid grid-cols-2 gap-3 mb-10 animate-fade-in-up" style="animation-delay: 0.1s;">
+                <a href="https://wa.me/5548999862981" target="_blank" class="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-gold-500/50 hover:bg-white/10 transition-all duration-300 group">
+                    <i data-lucide="message-circle" class="w-6 h-6 text-green-400 mb-2 group-hover:scale-110 transition-transform"></i>
+                    <span class="text-xs font-medium text-gray-300">WhatsApp</span>
+                </a>
+                <a href="https://maps.app.goo.gl/mEogCZDZGaro5fp27" target="_blank" class="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-gold-500/50 hover:bg-white/10 transition-all duration-300 group">
+                    <i data-lucide="map-pin" class="w-6 h-6 text-red-400 mb-2 group-hover:scale-110 transition-transform"></i>
+                    <span class="text-xs font-medium text-gray-300">Localização</span>
+                </a>
+                <a href="mailto:apavaneng@gmail.com" class="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-gold-500/50 hover:bg-white/10 transition-all duration-300 group">
+                    <i data-lucide="mail" class="w-6 h-6 text-blue-400 mb-2 group-hover:scale-110 transition-transform"></i>
+                    <span class="text-xs font-medium text-gray-300">E-mail</span>
+                </a>
+                <a href="https://apavan.com.br" target="_blank" class="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:border-gold-500/50 hover:bg-white/10 transition-all duration-300 group">
+                    <i data-lucide="globe" class="w-6 h-6 text-gold-400 mb-2 group-hover:scale-110 transition-transform"></i>
+                    <span class="text-xs font-medium text-gray-300">Site</span>
+                </a>
+            </div>
+
+            <!-- NBR Section -->
+            <section class="mb-10 animate-fade-in-up" style="animation-delay: 0.2s;">
+                <div class="flex items-center justify-between mb-4 px-1">
+                    <div class="flex items-center gap-3">
+                        <div class="p-2 bg-gold-500/20 rounded-lg">
+                            <i data-lucide="shield-check" class="w-5 h-5 text-gold-500"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">Normas Técnicas</h2>
+                            <p class="text-[10px] text-gray-400">Base normativa (ABNT)</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center text-gold-500/60 text-[10px] gap-1 animate-pulse">
+                        <span>Deslize</span>
+                        <i data-lucide="chevron-right" class="w-3 h-3"></i>
+                    </div>
+                </div>
+                
+                <div class="flex overflow-x-auto gap-3 pb-4 -mx-4 px-4 snap-x snap-mandatory scroll-smooth no-scrollbar" id="nbr-carousel">
+                    <!-- NBR Items will be injected here via JS -->
+                </div>
+            </section>
+
+            <!-- Form Section -->
+            <section class="mb-10 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-2xl animate-fade-in-up" style="animation-delay: 0.3s;">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-sm font-bold text-gold-500 uppercase tracking-wider flex items-center gap-2">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        Solicitação Técnica
+                    </h2>
+                    <span class="text-[10px] text-gray-400">Orçamento & ATP</span>
+                </div>
+
+                <form id="main-form" onsubmit="handleWhatsAppSend(event)" class="space-y-4">
+                    <div class="space-y-4">
+                        <div class="relative">
+                            <select id="input-tipoObra" required class="w-full bg-dark-800/80 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-gold-500/80 focus:ring-1 focus:ring-gold-500/50 transition-all appearance-none">
+                                <option value="">Selecione o Tipo de Obra</option>
+                                <option value="Residencial Unifamiliar">Residencial Unifamiliar</option>
+                                <option value="Residencial Multifamiliar">Residencial Multifamiliar</option>
+                                <option value="Comercial">Comercial</option>
+                                <option value="Industrial">Industrial</option>
+                                <option value="Reforço Estrutural">Reforço Estrutural</option>
+                            </select>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="number" id="input-area" placeholder="Área (m²)" required class="w-full bg-dark-800/80 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-gold-500/80 focus:ring-1 focus:ring-gold-500/50 transition-all placeholder-gray-500" />
+                            <select id="input-padrao" required class="w-full bg-dark-800/80 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-gold-500/80 focus:ring-1 focus:ring-gold-500/50 transition-all appearance-none">
+                                <option value="">Padrão</option>
+                                <option value="Baixo">Baixo</option>
+                                <option value="Médio">Médio</option>
+                                <option value="Alto">Alto</option>
+                            </select>
+                        </div>
+
+                        <input type="text" id="input-cidade" placeholder="Cidade / Estado" required class="w-full bg-dark-800/80 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-gold-500/80 focus:ring-1 focus:ring-gold-500/50 transition-all placeholder-gray-500" />
+
+                        <textarea id="input-observacoes" rows="3" placeholder="Observações técnicas (solo, vizinhança, prazos...)" class="w-full bg-dark-800/80 border border-white/10 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-gold-500/80 focus:ring-1 focus:ring-gold-500/50 transition-all resize-none placeholder-gray-500"></textarea>
+                    </div>
+
+                    <!-- Upload Field -->
+                    <div class="relative group">
+                        <input type="file" id="file-upload" class="hidden" accept=".pdf,.dwg,.dxf,.jpg,.png" onchange="handleFileChange(event)" />
+                        <label for="file-upload" id="file-label" class="flex flex-col items-center justify-center w-full px-4 py-4 border border-dashed rounded-xl cursor-pointer transition-all duration-300 border-white/20 hover:border-gold-500/50 hover:bg-white/5">
+                            <i data-lucide="upload-cloud" class="w-6 h-6 text-gray-400 group-hover:text-gold-400 mb-2 transition-colors"></i>
+                            <span id="file-text" class="text-xs text-gray-400 group-hover:text-gray-200 transition-colors">Anexar Projeto (PDF/DWG)</span>
+                        </label>
+                        <p class="text-[10px] text-gray-500 mt-2 text-center">*O arquivo será enviado automaticamente no celular (se suportado) ou anexado manualmente no PC.</p>
+                    </div>
+
+                    <!-- Main Action Button -->
+                    <button type="submit" id="btn-whatsapp" class="w-full bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-400 hover:to-gold-500 text-dark-900 font-bold py-4 rounded-xl shadow-lg shadow-gold-500/20 transition-all active:scale-95 flex items-center justify-center gap-2 mt-2">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                        <span>SOLICITAR ANÁLISE TÉCNICA</span>
+                    </button>
+                </form>
+
+                <!-- Secondary Actions (PDF Generation) -->
+                <div class="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-white/10">
+                    <button onclick="handleGenerateReport()" id="btn-report" class="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 hover:bg-white/5 hover:border-gold-500/30 text-xs text-gray-300 font-medium transition-all">
+                        <i data-lucide="file-text" class="w-4 h-4 text-gold-500"></i>
+                        <span>Gerar Laudo ATP</span>
+                    </button>
+                    <button onclick="handleGenerateProposal()" id="btn-proposal" class="flex items-center justify-center gap-2 py-3 rounded-xl border border-white/10 hover:bg-white/5 hover:border-gold-500/30 text-xs text-gray-300 font-medium transition-all">
+                        <i data-lucide="building-2" class="w-4 h-4 text-gold-500"></i>
+                        <span>Gerar Proposta</span>
+                    </button>
+                </div>
+            </section>
+        </div>
+
+        <!-- VIEW: DASHBOARD (Hidden by default) -->
+        <div id="view-dashboard" class="hidden animate-fade-in-up">
+            
+            <!-- Profile Settings Card -->
+            <div class="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-5 mb-6 shadow-xl">
+                <h3 class="font-bold text-white text-sm mb-4 flex items-center gap-2">
+                    <i data-lucide="settings" class="w-4 h-4 text-gold-500"></i>
+                    Configuração do Perfil
+                </h3>
+                <div class="flex items-center gap-4">
+                    <div class="relative group cursor-pointer">
+                        <img id="dashboard-profile-img" src="" alt="Preview" class="w-12 h-12 rounded-full object-cover border border-white/20" />
+                    </div>
+                    <div class="flex-1">
+                        <label class="flex items-center gap-2 px-4 py-2 bg-gold-500/10 hover:bg-gold-500/20 text-gold-500 rounded-lg text-xs font-medium cursor-pointer transition-colors w-fit border border-gold-500/30">
+                            <i data-lucide="camera" class="w-3.5 h-3.5"></i>
+                            Alterar Foto de Perfil
+                            <input type="file" accept="image/*" class="hidden" onchange="handleProfileImageUpload(event)" />
+                        </label>
+                        <p class="text-[10px] text-gray-500 mt-2">A nova foto será aplicada ao topo da página.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-6 flex justify-between items-center">
+                <div>
+                    <h2 class="text-xl font-bold text-gold-500 flex items-center gap-2">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                        Histórico
+                    </h2>
+                    <p class="text-xs text-gray-400">Registros de solicitações e documentos gerados</p>
+                </div>
+                <div class="text-right">
+                    <span id="submission-count" class="text-2xl font-bold text-white">0</span>
+                    <p class="text-[10px] text-gray-500 uppercase">Projetos</p>
+                </div>
+            </div>
+
+            <div id="history-list" class="space-y-4">
+                <!-- Items will be injected here -->
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="text-center pb-8 animate-fade-in-up" style="animation-delay: 0.4s;">
+            <p class="text-[10px] text-gray-500 uppercase tracking-widest mb-2">
+                © 2025 APavan Engenharia & Consultoria
+            </p>
+            <div class="flex justify-center items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-gold-500 animate-pulse"></div>
+                    <p class="text-[10px] text-gray-600">
+                        Marca em processo de registro – INPI
+                    </p>
+                </div>
+                <button id="admin-lock-btn" onclick="openAuthModal()" class="text-gray-700 hover:text-gold-500 transition-colors" title="Acesso Administrativo">
+                    <i data-lucide="lock" class="w-3 h-3"></i>
+                </button>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // --- CONSTANTS & DATA ---
+        const WHATSAPP_NUMBER = "5548999862981";
+        const DEFAULT_PROFILE_IMAGE = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80";
+        
+        const NBR_LIST = [
+            { code: "NBR 6118", title: "Estruturas de Concreto", description: "Procedimento para projeto de estruturas de concreto armado e protendido.", type: "Estrutural", url: "https://www.google.com/search?q=NBR+6118+pdf" },
+            { code: "NBR 6120", title: "Cargas e Ações", description: "Ações para o cálculo de estruturas de edificações.", type: "Cargas", url: "https://www.google.com/search?q=NBR+6120+pdf" },
+            { code: "NBR 6123", title: "Forças do Vento", description: "Forças devidas ao vento em edificações.", type: "Ventos", url: "https://www.google.com/search?q=NBR+6123+pdf" },
+            { code: "NBR 8681", title: "Segurança", description: "Ações e segurança nas estruturas - Procedimento.", type: "Segurança", url: "https://www.google.com/search?q=NBR+8681+pdf" },
+            { code: "NBR 6122", title: "Fundações", description: "Projeto e execução de fundações.", type: "Estrutural", url: "https://www.google.com/search?q=NBR+6122+pdf" },
+        ];
+
+        // --- STATE MANAGEMENT ---
+        let currentView = 'form';
+        let selectedFile = null;
+        let submissions = [];
+        let profileImage = DEFAULT_PROFILE_IMAGE;
+
+        // --- INITIALIZATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            loadFromStorage();
+            renderNBRCarousel();
+            updateUIProfile();
+        });
+
+        function loadFromStorage() {
+            try {
+                const savedSubs = localStorage.getItem('atp_submissions');
+                if (savedSubs) submissions = JSON.parse(savedSubs);
+
+                const savedImg = localStorage.getItem('atp_profile_image');
+                if (savedImg) profileImage = savedImg;
+            } catch (e) {
+                console.error("Erro ao carregar storage", e);
+            }
+        }
+
+        function renderNBRCarousel() {
+            const container = document.getElementById('nbr-carousel');
+            container.innerHTML = NBR_LIST.map(nbr => `
+                <div class="snap-center flex-none w-64 group relative overflow-hidden bg-white/5 backdrop-blur-md p-4 rounded-xl border border-white/10 hover:border-gold-500/30 transition-all duration-300 flex flex-col justify-between">
+                    <div class="absolute inset-0 bg-gold-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                    <div class="relative z-10">
+                        <div class="flex justify-between items-center mb-1">
+                            <h3 class="text-gold-400 font-bold text-sm tracking-wide">${nbr.code}</h3>
+                            <span class="text-[10px] bg-white/10 px-2 py-0.5 rounded text-gray-300 border border-white/5">${nbr.type}</span>
+                        </div>
+                        <h4 class="text-white text-xs font-semibold mb-1 truncate">${nbr.title}</h4>
+                        <p class="text-gray-400 text-[10px] leading-relaxed group-hover:text-gray-300 transition-colors line-clamp-2">${nbr.description}</p>
+                    </div>
+                    <a href="${nbr.url}" target="_blank" class="relative z-10 mt-3 flex items-center justify-center gap-2 w-full py-2 rounded-lg bg-white/5 hover:bg-gold-500/20 text-[10px] text-gold-500 font-medium transition-colors border border-white/5 hover:border-gold-500/30 group-hover:bg-gold-500/10">
+                        <i data-lucide="download" class="w-3 h-3"></i>
+                        Acessar PDF
+                    </a>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        // --- HELPER FUNCTIONS ---
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function getFormData() {
+            return {
+                tipoObra: document.getElementById('input-tipoObra').value,
+                area: document.getElementById('input-area').value,
+                padrao: document.getElementById('input-padrao').value,
+                cidade: document.getElementById('input-cidade').value,
+                observacoes: document.getElementById('input-observacoes').value,
+                fileName: selectedFile ? selectedFile.name : ''
+            };
+        }
+
+        function saveToHistory(data, action, status) {
+            const newSubmission = {
+                ...data,
+                id: generateId(),
+                createdAt: new Date().toISOString(),
+                status: status,
+                lastAction: action
+            };
+            submissions.unshift(newSubmission);
+            localStorage.setItem('atp_submissions', JSON.stringify(submissions));
+            renderDashboard(); // Refresh if in dashboard
+        }
+
+        // --- UI ACTIONS ---
+        function switchView(viewName) {
+            currentView = viewName;
+            const formView = document.getElementById('view-form');
+            const dashView = document.getElementById('view-dashboard');
+            const backBtn = document.getElementById('back-btn');
+            const subtitle = document.getElementById('page-subtitle');
+            const lockBtn = document.getElementById('admin-lock-btn');
+
+            if (viewName === 'dashboard') {
+                formView.classList.add('hidden');
+                dashView.classList.remove('hidden');
+                backBtn.classList.remove('hidden');
+                subtitle.textContent = "Painel Administrativo";
+                lockBtn.classList.add('hidden'); // Hide lock in dashboard
+                renderDashboard();
+            } else {
+                formView.classList.remove('hidden');
+                dashView.classList.add('hidden');
+                backBtn.classList.add('hidden');
+                subtitle.textContent = "EngenharIA ATP";
+                lockBtn.classList.remove('hidden'); // Show lock in form
+            }
+        }
+
+        function handleFileChange(event) {
+            const file = event.target.files[0];
+            const label = document.getElementById('file-label');
+            const text = document.getElementById('file-text');
+            
+            if (file) {
+                selectedFile = file;
+                label.classList.remove('border-white/20', 'hover:border-gold-500/50', 'hover:bg-white/5');
+                label.classList.add('border-gold-500/50', 'bg-gold-500/10');
+                text.innerHTML = `<span class="flex items-center gap-2 text-gold-400 font-medium truncate"><i data-lucide="check" class="w-4 h-4"></i> ${file.name}</span>`;
+                lucide.createIcons();
+                showNotification("Arquivo anexado com sucesso!");
+            }
+        }
+
+        function handleProfileImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    profileImage = e.target.result;
+                    localStorage.setItem('atp_profile_image', profileImage);
+                    updateUIProfile();
+                    showNotification("Foto de perfil atualizada!");
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function updateUIProfile() {
+            document.getElementById('profile-img').src = profileImage;
+            document.getElementById('dashboard-profile-img').src = profileImage;
+        }
+
+        // --- NOTIFICATIONS & LOADERS ---
+        function showNotification(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const content = document.getElementById('toast-content');
+            const icon = document.getElementById('toast-icon');
+            const title = document.getElementById('toast-title');
+            const message = document.getElementById('toast-message');
+
+            container.classList.remove('hidden');
+            message.textContent = msg;
+            
+            if (type === 'error') {
+                content.classList.replace('border-l-green-500', 'border-l-red-500');
+                icon.setAttribute('data-lucide', 'x-circle');
+                icon.classList.replace('text-green-400', 'text-red-400');
+                title.textContent = "Atenção";
+            } else {
+                content.classList.replace('border-l-red-500', 'border-l-green-500');
+                icon.setAttribute('data-lucide', 'check-circle-2');
+                icon.classList.replace('text-red-400', 'text-green-400');
+                title.textContent = "Sucesso";
+            }
+            lucide.createIcons();
+
+            setTimeout(() => {
+                container.classList.add('hidden');
+            }, 4000);
+        }
+
+        function toggleLoading(btnId, isLoading, text) {
+            const btn = document.getElementById(btnId);
+            const originalContent = btn.innerHTML;
+            if (isLoading) {
+                btn.disabled = true;
+                btn.innerHTML = `<i data-lucide="loader-2" class="w-5 h-5 animate-spin"></i> ${text}`;
+                btn.classList.add('opacity-70');
+            } else {
+                btn.disabled = false;
+                // Revert logic would require storing original HTML. 
+                // Simplified: manually reconstruct based on ID
+                if(btnId === 'btn-whatsapp') btn.innerHTML = `<i data-lucide="send" class="w-5 h-5"></i> SOLICITAR ANÁLISE TÉCNICA`;
+                if(btnId === 'btn-report') btn.innerHTML = `<i data-lucide="file-text" class="w-4 h-4 text-gold-500"></i> Gerar Laudo ATP`;
+                if(btnId === 'btn-proposal') btn.innerHTML = `<i data-lucide="building-2" class="w-4 h-4 text-gold-500"></i> Gerar Proposta`;
+                btn.classList.remove('opacity-70');
+            }
+            lucide.createIcons();
+        }
+
+        // --- AUTH ---
+        function openAuthModal() {
+            document.getElementById('auth-modal').classList.remove('hidden');
+            document.getElementById('auth-password').focus();
+        }
+
+        function closeAuthModal() {
+            document.getElementById('auth-modal').classList.add('hidden');
+            document.getElementById('auth-password').value = '';
+        }
+
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const pass = document.getElementById('auth-password').value;
+            if (pass === 'adm123') {
+                closeAuthModal();
+                switchView('dashboard');
+                showNotification("Acesso administrativo concedido!", 'success');
+            } else {
+                showNotification("Senha incorreta.", 'error');
+            }
+        }
+
+        // --- MAIN LOGIC (WHATSAPP) ---
+        async function handleWhatsAppSend(e) {
+            e.preventDefault();
+            const data = getFormData();
+            if(!data.tipoObra || !data.area || !data.padrao || !data.cidade) {
+                showNotification("Preencha todos os campos obrigatórios.", 'error');
+                return;
+            }
+
+            toggleLoading('btn-whatsapp', true, 'Processando...');
+            await new Promise(r => setTimeout(r, 800)); // Fake delay
+
+            saveToHistory(data, 'Contato via WhatsApp', 'Novo');
+
+            const baseMsg = `*Solicitação de Proposta Técnica - APavan*\n\n` +
+                `🏢 *Tipo:* ${data.tipoObra}\n` +
+                `📐 *Área:* ${data.area} m²\n` +
+                `🏗️ *Padrão:* ${data.padrao}\n` +
+                `📍 *Cidade:* ${data.cidade}\n` +
+                `📝 *Obs:* ${data.observacoes || 'Sem observações'}`;
+
+            // Web Share API
+            if (selectedFile && navigator.canShare && navigator.canShare({ files: [selectedFile] })) {
+                try {
+                    await navigator.share({
+                        files: [selectedFile],
+                        title: 'Solicitação de Proposta - APavan',
+                        text: baseMsg
+                    });
+                    toggleLoading('btn-whatsapp', false);
+                    showNotification("Compartilhamento iniciado!");
+                    return;
+                } catch (err) {
+                    console.log('Share canceled/failed');
+                }
+            }
+
+            // Fallback WhatsApp Link
+            const fileMsgUrl = data.fileName 
+                ? `📎 *Arquivo:* ${data.fileName}%0A_(Enviarei o arquivo PDF/DWG na sequência)_%0A` 
+                : `📎 _Anexarei o projeto em seguida._%0A`;
+            
+            const urlMsg = baseMsg.replace(/\n/g, '%0A') + '%0A%0A' + fileMsgUrl;
+
+            if (data.fileName) {
+                alert(`⚠️ IMPORTANTE:\n\nPor favor, ANEXE o arquivo "${data.fileName}" manualmente na conversa do WhatsApp.`);
+            }
+
+            window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${urlMsg}`, '_blank');
+            toggleLoading('btn-whatsapp', false);
+            showNotification("Redirecionando para WhatsApp...", 'success');
+        }
+
+        // --- DASHBOARD RENDERER ---
+        function renderDashboard() {
+            const list = document.getElementById('history-list');
+            document.getElementById('submission-count').textContent = submissions.length;
+
+            if (submissions.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center py-12 bg-white/5 rounded-2xl border border-dashed border-white/10">
+                        <i data-lucide="clock" class="w-10 h-10 text-gray-600 mx-auto mb-3"></i>
+                        <p class="text-gray-400 text-sm">Nenhum registro encontrado no histórico.</p>
+                    </div>`;
+                lucide.createIcons();
+                return;
+            }
+
+            list.innerHTML = submissions.map(item => `
+                <div class="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:border-gold-500/30 transition-all">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="font-bold text-white text-sm">${item.tipoObra}</h3>
+                            <div class="flex items-center gap-2 text-[10px] text-gray-400 mt-1">
+                                <i data-lucide="map-pin" class="w-3 h-3"></i>
+                                ${item.cidade} • ${item.area}m² • ${item.padrao}
+                            </div>
+                        </div>
+                        <span class="text-[10px] px-2 py-1 rounded border ${getStatusColor(item.status)}">
+                            ${item.status}
+                        </span>
+                    </div>
+                    <div class="bg-black/20 rounded p-2 mb-3">
+                        <p class="text-[10px] text-gray-500 line-clamp-2">
+                            <span class="text-gold-500/70 mr-1">Obs:</span> 
+                            ${item.observacoes || "Sem observações."}
+                        </p>
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-white/5">
+                        <div class="text-[10px] text-gray-500 flex items-center gap-1">
+                            <i data-lucide="clock" class="w-3 h-3"></i>
+                            ${new Date(item.createdAt).toLocaleDateString()}
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="regenerateItem('${item.id}', 'report')" class="p-1.5 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="file-check" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="regenerateItem('${item.id}', 'proposal')" class="p-1.5 rounded hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                                <i data-lucide="building-2" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteSubmission('${item.id}')" class="p-1.5 rounded hover:bg-red-500/20 text-gray-600 hover:text-red-400 transition-colors">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function getStatusColor(status) {
+            if (status === 'Novo') return 'bg-blue-500/10 border-blue-500/30 text-blue-400';
+            if (status === 'Laudo Gerado') return 'bg-purple-500/10 border-purple-500/30 text-purple-400';
+            if (status === 'Proposta Enviada') return 'bg-green-500/10 border-green-500/30 text-green-400';
+            return 'bg-gray-500/10 border-gray-500/30 text-gray-400';
+        }
+
+        function deleteSubmission(id) {
+            if(confirm("Deseja excluir este registro?")) {
+                submissions = submissions.filter(s => s.id !== id);
+                localStorage.setItem('atp_submissions', JSON.stringify(submissions));
+                renderDashboard();
+                showNotification("Registro removido.");
+            }
+        }
+
+        function regenerateItem(id, type) {
+            const item = submissions.find(s => s.id === id);
+            if(item) {
+                if(type === 'report') generateATPReportLogic(item);
+                else generateProposalLogic(item);
+            }
+        }
+
+        // --- PDF GENERATION LOGIC ---
+        // Adapters to call logic with UI loading state
+        async function handleGenerateReport() {
+            const data = getFormData();
+            if(!data.tipoObra) return showNotification("Preencha o formulário primeiro.", "error");
+            toggleLoading('btn-report', true, 'Gerando...');
+            await new Promise(r => setTimeout(r, 1000));
+            try {
+                generateATPReportLogic(data);
+                saveToHistory(data, 'Gerou Laudo ATP', 'Laudo Gerado');
+                showNotification("Laudo gerado!");
+            } catch(e) { console.error(e); showNotification("Erro no PDF", "error"); }
+            toggleLoading('btn-report', false);
+        }
+
+        async function handleGenerateProposal() {
+            const data = getFormData();
+            if(!data.tipoObra) return showNotification("Preencha o formulário primeiro.", "error");
+            toggleLoading('btn-proposal', true, 'Gerando...');
+            await new Promise(r => setTimeout(r, 1000));
+            try {
+                generateProposalLogic(data);
+                saveToHistory(data, 'Gerou Proposta', 'Proposta Enviada');
+                showNotification("Proposta gerada!");
+            } catch(e) { console.error(e); showNotification("Erro no PDF", "error"); }
+            toggleLoading('btn-proposal', false);
+        }
+
+        // --- PDF LOGIC (Ported from pdfGenerator.ts) ---
+        // Theme Constants
+        const pdfTheme = { gold: [212, 175, 55], gray: [128, 128, 128], lightGray: [240, 240, 240] };
+
+        // Helper: Header
+        const drawHeader = (doc, pageWidth, margin) => {
+            doc.setFillColor(pdfTheme.gold[0], pdfTheme.gold[1], pdfTheme.gold[2]);
+            doc.rect(0, 0, pageWidth, 12, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "bold");
+            doc.text("APAVAN ENGENHARIA & CONSULTORIA", margin, 8);
+            doc.setFont("helvetica", "normal");
+            doc.text("Engenharia Estrutural | Laudos Técnicos | ATP", pageWidth - margin - 60, 8);
+            doc.setTextColor(0, 0, 0);
+        };
+
+        // Helper: Footer
+        const drawFooter = (doc, pageWidth, pageHeight, margin) => {
+            const pageCount = doc.getNumberOfPages();
+            for(let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(pdfTheme.gray[0], pdfTheme.gray[1], pdfTheme.gray[2]);
+                doc.setLineWidth(0.1);
+                doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+                doc.text("APavan Engenharia - Soluções em Engenharia Estrutural", margin, pageHeight - 10);
+                doc.text(`Página ${i} de ${pageCount}`, pageWidth - margin - 20, pageHeight - 10);
+            }
+        };
+
+        // Generator: ATP Report
+        const generateATPReportLogic = (data) => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 20;
+            let y = 20;
+
+            const checkPageBreak = (heightNeeded) => {
+                if (y + heightNeeded > pageHeight - 20) {
+                    doc.addPage();
+                    drawHeader(doc, pageWidth, margin);
+                    y = 30;
+                }
+            };
+
+            const addSectionTitle = (title) => {
+                checkPageBreak(15);
+                doc.setFillColor(pdfTheme.lightGray[0], pdfTheme.lightGray[1], pdfTheme.lightGray[2]);
+                doc.rect(margin, y - 5, pageWidth - (margin * 2), 7, 'F');
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                doc.text(title.toUpperCase(), margin + 2, y);
+                y += 10;
+            };
+
+            const addBodyText = (text, isBold = false) => {
+                doc.setFont("helvetica", isBold ? "bold" : "normal");
+                doc.setFontSize(10);
+                const splitText = doc.splitTextToSize(text, pageWidth - (margin * 2));
+                checkPageBreak(splitText.length * 5);
+                doc.text(splitText, margin, y);
+                y += (splitText.length * 5) + 2;
+            };
+
+            const addBulletPoint = (text) => {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                const splitText = doc.splitTextToSize(text, pageWidth - (margin * 2) - 5);
+                checkPageBreak(splitText.length * 5);
+                doc.text("•", margin, y);
+                doc.text(splitText, margin + 5, y);
+                y += (splitText.length * 5) + 2;
+            };
+
+            const addField = (label, value) => {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                const labelWidth = doc.getStringUnitWidth(label) * 10 / doc.internal.scaleFactor;
+                doc.text(label, margin, y);
+                doc.setFont("helvetica", "normal");
+                doc.text(value || "-", margin + labelWidth + 2, y);
+                y += 6;
+            };
+
+            // Content
+            drawHeader(doc, pageWidth, margin);
+            y = 35;
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text("RELATÓRIO DE ANÁLISE TÉCNICA DE PROJETO (ATP)", pageWidth / 2, y, { align: 'center' });
+            y += 8;
+            doc.setFontSize(11);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Avaliação de Conformidade Normativa e Desempenho Estrutural", pageWidth / 2, y, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+            y += 15;
+
+            addSectionTitle("1. Dados do Empreendimento");
+            addField("Tipo de Obra:", data.tipoObra);
+            addField("Área Estimada:", `${data.area} m²`);
+            addField("Padrão Construtivo:", data.padrao);
+            addField("Localização:", data.cidade);
+            addField("Data da Solicitação:", new Date().toLocaleDateString('pt-BR'));
+            y += 5;
+
+            addSectionTitle("2. Documentos e Normas de Referência");
+            addBodyText("Análise técnica baseada nas normas brasileiras vigentes (ABNT):");
+            y += 3;
+            if(data.fileName) addBulletPoint(`Arquivo Fornecido: ${data.fileName}`);
+            addBulletPoint("NBR 6118:2023 - Estruturas de concreto");
+            addBulletPoint("NBR 6120:2019 - Cargas para cálculo");
+            y += 5;
+
+            addSectionTitle("3. Escopo da Análise");
+            doc.setFont("helvetica", "bold");
+            doc.text("3.1. Estabilidade Global", margin, y); y+=5;
+            addBulletPoint("Coerência do lançamento estrutural.");
+            addBulletPoint("Parâmetros de instabilidade (Gama-Z).");
+            y += 5;
+
+            addSectionTitle("4. Observações");
+            const obsText = data.observacoes && data.observacoes.trim() !== "" ? data.observacoes : "Sem observações específicas.";
+            addBodyText(obsText);
+            y += 5;
+
+            doc.setDrawColor(pdfTheme.gold[0], pdfTheme.gold[1], pdfTheme.gold[2]);
+            doc.setLineWidth(1);
+            doc.rect(margin, y, pageWidth - (margin*2), 15);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(12);
+            doc.text("STATUS: AGUARDANDO ANÁLISE DETALHADA", pageWidth/2, y + 10, { align: 'center' });
+            y += 25;
+
+            drawFooter(doc, pageWidth, pageHeight, margin);
+            doc.save(`Laudo_ATP_${(data.tipoObra || 'Projeto').replace(/\s+/g, '_')}.pdf`);
+        };
+
+        // Generator: Proposal
+        const generateProposalLogic = (data) => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 20;
+            let y = 20;
+
+            // Reuse local helpers logic by redefining slightly or passing ctx (simplified here by copy-paste for standalone function)
+            const checkPageBreak = (heightNeeded) => {
+                if (y + heightNeeded > pageHeight - 20) {
+                    doc.addPage();
+                    drawHeader(doc, pageWidth, margin);
+                    y = 30;
+                }
+            };
+            const addSectionTitle = (title) => {
+                checkPageBreak(15);
+                doc.setFillColor(pdfTheme.lightGray[0], pdfTheme.lightGray[1], pdfTheme.lightGray[2]);
+                doc.rect(margin, y - 5, pageWidth - (margin * 2), 7, 'F');
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                doc.setTextColor(0, 0, 0);
+                doc.text(title.toUpperCase(), margin + 2, y);
+                y += 10;
+            };
+            const addField = (label, value) => {
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(10);
+                const labelWidth = doc.getStringUnitWidth(label) * 10 / doc.internal.scaleFactor;
+                doc.text(label, margin, y);
+                doc.setFont("helvetica", "normal");
+                doc.text(value || "-", margin + labelWidth + 2, y);
+                y += 6;
+            };
+            const addBulletPoint = (text) => {
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(10);
+                const splitText = doc.splitTextToSize(text, pageWidth - (margin * 2) - 5);
+                checkPageBreak(splitText.length * 5);
+                doc.text("•", margin, y);
+                doc.text(splitText, margin + 5, y);
+                y += (splitText.length * 5) + 2;
+            };
+
+            drawHeader(doc, pageWidth, margin);
+            y = 35;
+
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(16);
+            doc.text("PROPOSTA TÉCNICA E COMERCIAL", pageWidth / 2, y, { align: 'center' });
+            y += 8;
+            doc.setFontSize(11);
+            doc.setTextColor(100, 100, 100);
+            doc.text("Projetos de Engenharia e Consultoria Estrutural", pageWidth / 2, y, { align: 'center' });
+            doc.setTextColor(0, 0, 0);
+            y += 15;
+
+            addSectionTitle("1. Dados do Cliente / Obra");
+            addField("Obra:", data.tipoObra);
+            addField("Localização:", data.cidade);
+            addField("Área:", `${data.area} m²`);
+            addField("Padrão:", data.padrao);
+            y += 5;
+
+            addSectionTitle("2. Escopo dos Serviços");
+            addBulletPoint("Concepção do sistema estrutural.");
+            addBulletPoint("Dimensionamento conforme NBR 6118.");
+            addBulletPoint("Detalhamento das armaduras e formas.");
+            addBulletPoint("Emissão de ART de Projeto.");
+            y += 5;
+
+            addSectionTitle("3. Investimento Estimado");
+            const areaNum = parseFloat(data.area) || 0;
+            let estimatedValue = "Sob Consulta";
+            if(areaNum > 0 && areaNum <= 100) estimatedValue = "R$ 3.500,00 a R$ 5.000,00";
+            else if (areaNum > 100 && areaNum <= 300) estimatedValue = "R$ 6.500,00 a R$ 9.000,00";
+            else if (areaNum > 300) estimatedValue = "A ser definido após análise detalhada";
+
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.text(estimatedValue, margin, y);
+            y += 8;
+
+            addSectionTitle("4. Validade");
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text("Proposta válida por 10 dias.", margin, y);
+            
+            drawFooter(doc, pageWidth, pageHeight, margin);
+            doc.save(`Proposta_APavan_${(data.tipoObra || 'Projeto').replace(/\s+/g, '_')}.pdf`);
+        };
+
+    </script>
+</body>
+</html>
